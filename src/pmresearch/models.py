@@ -14,6 +14,7 @@ class TradedTokenStats:
     volume: int
     buy_count: int
     sell_count: int
+    last_price: int
 
 
 @dataclass(frozen=True, slots=True)

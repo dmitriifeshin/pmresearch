@@ -21,6 +21,7 @@ def make_token(
             volume=1_000,
             buy_count=6,
             sell_count=4,
+            last_price=50,
         ),
         metadata=TokenMetadata(
             token_id=token_id,
