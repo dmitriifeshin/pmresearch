@@ -3,11 +3,13 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any, Protocol
 
+from clickhouse_connect.driver.external import ExternalData
+
 from .models import EnrichedTradedToken, TokenPair
 
 
 class ClickHouseClient(Protocol):
-    def query(self, sql: str, parameters: dict[str, Any] | None = None) -> Any: ...
+    def query(self, sql: str, parameters: dict[str, Any] | None = None, external_data: Any | None = None) -> Any: ...
 
 
 class OutcomePairResolver:
@@ -22,26 +24,28 @@ class OutcomePairResolver:
         if not wallet_by_condition:
             return []
 
-        # Batch fetch all tokens that share a condition_id with the wallet tokens
-        cids_sql = ", ".join(f"'{cid}'" for cid in wallet_by_condition)
-        sql = f"""
-            SELECT token_id, outcome, condition_id, market_id, question, slug, end_ts, tags
-            FROM (
-                SELECT
-                    token_id,
-                    argMax(outcome,      ts) AS outcome,
-                    argMax(condition_id, ts) AS condition_id,
-                    argMax(market_id,    ts) AS market_id,
-                    argMax(question,     ts) AS question,
-                    argMax(slug,         ts) AS slug,
-                    argMax(end_ts,       ts) AS end_ts,
-                    argMax(tags,         ts) AS tags
-                FROM default.tokens
-                GROUP BY token_id
-            )
-            WHERE condition_id IN ({cids_sql})
+        cids = sorted(wallet_by_condition.keys())
+        external_data = ExternalData(
+            data="\n".join(cids).encode(),
+            file_name="input_conditions",
+            fmt="TSV",
+            structure="condition_id String",
+        )
+        sql = """
+            SELECT
+                t.token_id,
+                argMax(t.outcome,      t.ts) AS outcome,
+                argMax(t.condition_id, t.ts) AS condition_id,
+                argMax(t.market_id,    t.ts) AS market_id,
+                argMax(t.question,     t.ts) AS question,
+                argMax(t.slug,         t.ts) AS slug,
+                argMax(t.end_ts,       t.ts) AS end_ts,
+                argMax(t.tags,         t.ts) AS tags
+            FROM default.tokens AS t
+            INNER JOIN input_conditions AS ic ON t.condition_id = ic.condition_id
+            GROUP BY t.token_id
         """
-        rows = self._ch.query(sql).result_rows
+        rows = self._ch.query(sql, external_data=external_data).result_rows
         return build_pairs(wallet_by_condition, rows)
 
 
