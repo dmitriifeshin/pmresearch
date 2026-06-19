@@ -15,6 +15,8 @@ class TradedTokenStats:
     buy_count: int
     sell_count: int
     last_price: int
+    buy_token_volume: float   # total tokens bought (amount_usd * 10000 / price)
+    sell_token_volume: int    # total tokens sold (amount in tokens)
 
 
 @dataclass(frozen=True, slots=True)
