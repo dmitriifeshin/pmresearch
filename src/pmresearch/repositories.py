@@ -3,11 +3,18 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Protocol
 
+from clickhouse_connect.driver.external import ExternalData
+
 from .models import EnrichedTradedToken, TokenMetadata, TradedTokenStats
 
 
 class ClickHouseClient(Protocol):
-    def query(self, sql: str, parameters: dict[str, Any] | None = None) -> Any: ...
+    def query(
+        self,
+        sql: str,
+        parameters: dict[str, Any] | None = None,
+        external_data: Any | None = None,
+    ) -> Any: ...
 
 
 def _strip_0x(address: str) -> str:
@@ -78,29 +85,55 @@ class TokenMetadataRepository:
     def __init__(self, client: ClickHouseClient) -> None:
         self._ch = client
 
-    def enrich(self, traded_tokens: list[TradedTokenStats]) -> list[EnrichedTradedToken]:
+    def enrich(
+        self,
+        traded_tokens: list[TradedTokenStats],
+        metadata_as_of: datetime | None = None,
+    ) -> list[EnrichedTradedToken]:
         if not traded_tokens:
             return []
 
-        # TODO: for lists > ~10k tokens replace IN with an external temporary table + JOIN
-        ids_sql = ", ".join(f"toUInt256('{t.token_id}')" for t in traded_tokens)
+        token_ids = sorted({str(t.token_id) for t in traded_tokens})
+        external_data = ExternalData(
+            data="\n".join(token_ids).encode(),
+            file_name="input_tokens",
+            fmt="TSV",
+            structure="token_id UInt256",
+        )
+
+        params: dict[str, Any] = {}
+        ts_condition = ""
+        if metadata_as_of is not None:
+            ts_condition = "AND t.ts <= %(metadata_as_of)s"
+            params["metadata_as_of"] = metadata_as_of
+
         sql = f"""
-            SELECT
-                token_id,
-                argMax(outcome,      ts) AS outcome,
-                argMax(market_id,    ts) AS market_id,
-                argMax(condition_id, ts) AS condition_id,
-                argMax(question,     ts) AS question,
-                argMax(slug,         ts) AS slug,
-                argMax(end_ts,       ts) AS end_ts,
-                argMax(tags,         ts) AS tags
-            FROM default.tokens
-            WHERE token_id IN ({ids_sql})
-            GROUP BY token_id
+            WITH latest_tokens AS (
+                SELECT
+                    t.token_id,
+                    argMax(t.outcome,      t.ts) AS outcome,
+                    argMax(t.market_id,    t.ts) AS market_id,
+                    argMax(t.condition_id, t.ts) AS condition_id,
+                    argMax(t.question,     t.ts) AS question,
+                    argMax(t.slug,         t.ts) AS slug,
+                    argMax(t.end_ts,       t.ts) AS end_ts,
+                    argMax(t.tags,         t.ts) AS tags
+                FROM default.tokens AS t
+                INNER JOIN input_tokens AS it ON t.token_id = it.token_id
+                {ts_condition}
+                GROUP BY t.token_id
+            )
+            SELECT * FROM latest_tokens
         """
-        rows = self._ch.query(sql).result_rows
-        meta_by_id: dict[int, TokenMetadata] = {
-            r[0]: TokenMetadata(
+
+        rows = self._ch.query(
+            sql,
+            parameters=params or None,
+            external_data=external_data,
+        ).result_rows
+
+        metadata_by_token_id: dict[str, TokenMetadata] = {
+            str(r[0]): TokenMetadata(
                 token_id=r[0],
                 outcome=r[1] or "",
                 market_id=r[2],
@@ -113,8 +146,14 @@ class TokenMetadataRepository:
             for r in rows
         }
 
-        return [
-            EnrichedTradedToken(traded=t, metadata=meta_by_id[t.token_id])
-            for t in traded_tokens
-            if t.token_id in meta_by_id
-        ]
+        traded_by_token_id = {str(t.token_id): t for t in traded_tokens}
+
+        enriched = []
+        for token_id_str, traded in traded_by_token_id.items():
+            meta = metadata_by_token_id.get(token_id_str)
+            if meta is None:
+                # TODO: log missing metadata for token_id
+                continue
+            enriched.append(EnrichedTradedToken(traded=traded, metadata=meta))
+
+        return enriched
