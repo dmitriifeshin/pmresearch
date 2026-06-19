@@ -17,6 +17,8 @@ class TradedTokenStats:
     last_price: int
     buy_token_volume: float   # total tokens bought (amount_usd * 10000 / price)
     sell_token_volume: int    # total tokens sold (amount in tokens)
+    buy_usd_volume: float     # total USD spent on buys (amount / 1e6)
+    sell_usd_volume: float    # total USD received from sells (amount * price / 10000 / 1e6)
 
 
 @dataclass(frozen=True, slots=True)

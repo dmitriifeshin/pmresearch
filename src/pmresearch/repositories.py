@@ -47,7 +47,9 @@ class WalletTradedTokenRepository:
                 countIf(side = 1) AS sell_count,
                 argMax(price, block_ts)                                    AS last_price,
                 sumIf(toFloat64(amount) * 10000 / price, side = 0)        AS buy_token_volume,
-                sumIf(amount, side = 1)                                    AS sell_token_volume
+                sumIf(amount, side = 1)                                    AS sell_token_volume,
+                sumIf(amount, side = 0) / 1e6                             AS buy_usd_volume,
+                sumIf(toFloat64(amount) * price / 10000, side = 1) / 1e6  AS sell_usd_volume
             FROM default.trades_bq
             WHERE {where}
             GROUP BY token_id
@@ -65,6 +67,8 @@ class WalletTradedTokenRepository:
                 last_price=r[7],
                 buy_token_volume=r[8],
                 sell_token_volume=r[9],
+                buy_usd_volume=r[10],
+                sell_usd_volume=r[11],
             )
             for r in rows
         ]

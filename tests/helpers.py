@@ -24,6 +24,8 @@ def make_token(
             last_price=50,
             buy_token_volume=600.0,
             sell_token_volume=400,
+            buy_usd_volume=30.0,
+            sell_usd_volume=20.0,
         ),
         metadata=TokenMetadata(
             token_id=token_id,
