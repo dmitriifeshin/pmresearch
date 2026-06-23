@@ -1,19 +1,19 @@
-from pmresearch.filters import BinaryOutcomeFilter, ExcludeTagsFilter, MinTradesFilter
+from pmresearch.filters import BinaryOutcomeFilter, ExcludeTagsFilter, MinWalletTradesFilter
 from pmresearch.selector import TokenSelector
 
-from helpers import make_token
+from helpers import make_context
 
 
 def test_all_pass():
-    selector = TokenSelector([MinTradesFilter(1)])
-    result = selector.select([make_token(trades_count=5), make_token(token_id=2, trades_count=10)])
+    selector = TokenSelector([MinWalletTradesFilter(1)])
+    result = selector.select([make_context(wallet_trades_count=5), make_context(token_id=2, wallet_trades_count=10)])
     assert len(result.selected) == 2
     assert len(result.rejected) == 0
 
 
 def test_all_rejected():
-    selector = TokenSelector([MinTradesFilter(100)])
-    result = selector.select([make_token(trades_count=5)])
+    selector = TokenSelector([MinWalletTradesFilter(100)])
+    result = selector.select([make_context(wallet_trades_count=5)])
     assert len(result.selected) == 0
     assert len(result.rejected) == 1
 
@@ -35,25 +35,25 @@ def test_stops_at_first_failing_filter():
         TrackingFilter("first", keep=False),
         TrackingFilter("second", keep=True),
     ])
-    selector.select([make_token()])
+    selector.select([make_context()])
 
     assert "first" in calls
     assert "second" not in calls  # short-circuit
 
 
 def test_rejection_reason_recorded():
-    selector = TokenSelector([MinTradesFilter(50)])
-    result = selector.select([make_token(trades_count=3)])
+    selector = TokenSelector([MinWalletTradesFilter(50)])
+    result = selector.select([make_context(wallet_trades_count=3)])
     assert result.rejected[0].reason
     assert "3" in result.rejected[0].reason
 
 
 def test_stats_counts_by_reason():
-    selector = TokenSelector([ExcludeTagsFilter({"Crypto"}), MinTradesFilter(50)])
+    selector = TokenSelector([ExcludeTagsFilter({"Crypto"}), MinWalletTradesFilter(50)])
     tokens = [
-        make_token(token_id=1, tags=("Crypto",), trades_count=100),
-        make_token(token_id=2, tags=("Crypto",), trades_count=100),
-        make_token(token_id=3, tags=(), trades_count=1),
+        make_context(token_id=1, tags=("Crypto",), wallet_trades_count=100),
+        make_context(token_id=2, tags=("Crypto",), wallet_trades_count=100),
+        make_context(token_id=3, tags=(), wallet_trades_count=1),
     ]
     result = selector.select(tokens)
     stats = result.stats
@@ -62,13 +62,13 @@ def test_stats_counts_by_reason():
 
 
 def test_mixed_pass_and_reject():
-    selector = TokenSelector([BinaryOutcomeFilter(), MinTradesFilter(5)])
+    selector = TokenSelector([BinaryOutcomeFilter(), MinWalletTradesFilter(5)])
     tokens = [
-        make_token(token_id=1, outcome="Yes", trades_count=10),   # pass
-        make_token(token_id=2, outcome="Draw", trades_count=10),  # rejected by binary
-        make_token(token_id=3, outcome="No", trades_count=2),     # rejected by min_trades
+        make_context(token_id=1, outcome="Yes", wallet_trades_count=10),   # pass
+        make_context(token_id=2, outcome="Draw", wallet_trades_count=10),  # rejected by binary
+        make_context(token_id=3, outcome="No", wallet_trades_count=2),     # rejected by min_trades
     ]
     result = selector.select(tokens)
     assert len(result.selected) == 1
-    assert result.selected[0].traded.token_id == 1
+    assert result.selected[0].wallet_stats.token_id == 1
     assert len(result.rejected) == 2

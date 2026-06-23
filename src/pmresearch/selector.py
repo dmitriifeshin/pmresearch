@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 from .filters import Filter
-from .models import EnrichedTradedToken, RejectedToken, SelectionResult
+from .models import RejectedToken, SelectionResult, WalletTokenContext
 
 
 class TokenSelector:
     def __init__(self, filters: list[Filter]) -> None:
         self._filters = filters
 
-    def select(self, tokens: list[EnrichedTradedToken]) -> SelectionResult:
-        selected: list[EnrichedTradedToken] = []
+    def select(self, tokens: list[WalletTokenContext]) -> SelectionResult:
+        selected: list[WalletTokenContext] = []
         rejected: list[RejectedToken] = []
 
         for token in tokens:

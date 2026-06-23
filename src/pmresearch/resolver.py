@@ -5,7 +5,7 @@ from typing import Any, Protocol
 
 from clickhouse_connect.driver.external import ExternalData
 
-from .models import EnrichedTradedToken, TokenPair
+from .models import TokenPair, WalletTokenContext
 
 
 class ClickHouseClient(Protocol):
@@ -16,7 +16,7 @@ class OutcomePairResolver:
     def __init__(self, client: ClickHouseClient) -> None:
         self._ch = client
 
-    def resolve_pairs(self, tokens: list[EnrichedTradedToken]) -> list[TokenPair]:
+    def resolve_pairs(self, tokens: list[WalletTokenContext]) -> list[TokenPair]:
         if not tokens:
             return []
 
@@ -50,22 +50,24 @@ class OutcomePairResolver:
 
 
 def _index_by_condition(
-    tokens: list[EnrichedTradedToken],
-) -> dict[str, EnrichedTradedToken]:
-    """Return one wallet token per condition_id (prefer higher trade count)."""
-    index: dict[str, EnrichedTradedToken] = {}
+    tokens: list[WalletTokenContext],
+) -> dict[str, WalletTokenContext]:
+    """Return one wallet context per condition_id (prefer higher wallet trade count)."""
+    index: dict[str, WalletTokenContext] = {}
     for token in tokens:
+        if token.metadata is None:
+            continue
         cid = token.metadata.condition_id
         if cid is None:
             continue
         existing = index.get(cid)
-        if existing is None or token.traded.trades_count > existing.traded.trades_count:
+        if existing is None or token.wallet_stats.wallet_trades_count > existing.wallet_stats.wallet_trades_count:
             index[cid] = token
     return index
 
 
 def build_pairs(
-    wallet_by_condition: dict[str, EnrichedTradedToken],
+    wallet_by_condition: dict[str, WalletTokenContext],
     market_rows: list[tuple],
 ) -> list[TokenPair]:
     """
@@ -83,8 +85,8 @@ def build_pairs(
 
     pairs: list[TokenPair] = []
     for cid, rows in by_condition.items():
-        wallet_token = wallet_by_condition.get(cid)
-        if wallet_token is None:
+        wallet_context = wallet_by_condition.get(cid)
+        if wallet_context is None:
             continue
 
         yes_row = None
@@ -97,7 +99,11 @@ def build_pairs(
                 no_row = row
 
         if yes_row is None or no_row is None:
-            continue  # multi-outcome or incomplete market — skip
+            continue
+
+        wallet_outcome = ""
+        if wallet_context.metadata is not None:
+            wallet_outcome = wallet_context.metadata.outcome.strip().lower()
 
         pairs.append(
             TokenPair(
@@ -109,8 +115,8 @@ def build_pairs(
                 tags=tuple(yes_row[7]) if yes_row[7] else (),
                 yes_token_id=yes_row[0],
                 no_token_id=no_row[0],
-                wallet_traded_token_id=wallet_token.traded.token_id,
-                wallet_traded_outcome=wallet_token.metadata.outcome.strip().lower(),
+                wallet_traded_token_id=wallet_context.wallet_stats.token_id,
+                wallet_traded_outcome=wallet_outcome,
             )
         )
 

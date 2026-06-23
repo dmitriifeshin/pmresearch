@@ -1,11 +1,9 @@
 """
-Tests for TokenMetadataRepository.enrich — verifies external_data usage without a real DB.
+Tests for TokenMetadataRepository.get_metadata — verifies external_data usage without a real DB.
 """
 from datetime import datetime, timezone
 
 from pmresearch.repositories import TokenMetadataRepository
-
-from helpers import make_traded_stats
 
 
 class _FakeResult:
@@ -27,10 +25,10 @@ class _CapturingClient:
 
 # ── no IN clause ─────────────────────────────────────────────────────────────
 
-def test_enrich_does_not_use_in_clause():
+def test_get_metadata_does_not_use_in_clause():
     client = _CapturingClient()
     repo = TokenMetadataRepository(client)
-    repo.enrich([make_traded_stats(token_id=42)])
+    repo.get_metadata([42])
 
     sql = client.calls[0]["sql"]
     assert "IN (" not in sql
@@ -38,19 +36,19 @@ def test_enrich_does_not_use_in_clause():
 
 # ── external_data presence and name ──────────────────────────────────────────
 
-def test_enrich_passes_external_data():
+def test_get_metadata_passes_external_data():
     client = _CapturingClient()
     repo = TokenMetadataRepository(client)
-    repo.enrich([make_traded_stats(token_id=1)])
+    repo.get_metadata([1])
 
     ext = client.calls[0]["external_data"]
     assert ext is not None
 
 
-def test_enrich_external_data_named_input_tokens():
+def test_get_metadata_external_data_named_input_tokens():
     client = _CapturingClient()
     repo = TokenMetadataRepository(client)
-    repo.enrich([make_traded_stats(token_id=1)])
+    repo.get_metadata([1])
 
     ext = client.calls[0]["external_data"]
     assert ext.files[0].name == "input_tokens"
@@ -58,41 +56,40 @@ def test_enrich_external_data_named_input_tokens():
 
 # ── metadata_as_of ────────────────────────────────────────────────────────────
 
-def test_enrich_no_metadata_as_of_passes_no_parameters():
+def test_get_metadata_no_as_of_passes_no_parameters():
     client = _CapturingClient()
     repo = TokenMetadataRepository(client)
-    repo.enrich([make_traded_stats()])
+    repo.get_metadata([1])
 
     assert client.calls[0]["parameters"] is None
 
 
-def test_enrich_metadata_as_of_passed_as_parameter():
+def test_get_metadata_as_of_passed_as_parameter():
     ts = datetime(2025, 6, 1, tzinfo=timezone.utc)
     client = _CapturingClient()
     repo = TokenMetadataRepository(client)
-    repo.enrich([make_traded_stats()], metadata_as_of=ts)
+    repo.get_metadata([1], metadata_as_of=ts)
 
     params = client.calls[0]["parameters"]
     assert params is not None
     assert params["metadata_as_of"] == ts
 
 
-def test_enrich_metadata_as_of_not_in_sql_string():
+def test_get_metadata_as_of_not_in_sql_string():
     ts = datetime(2025, 6, 1, tzinfo=timezone.utc)
     client = _CapturingClient()
     repo = TokenMetadataRepository(client)
-    repo.enrich([make_traded_stats()], metadata_as_of=ts)
+    repo.get_metadata([1], metadata_as_of=ts)
 
-    # timestamp must not be interpolated directly into SQL
     assert "2025-06-01" not in client.calls[0]["sql"]
 
 
 # ── empty input ───────────────────────────────────────────────────────────────
 
-def test_enrich_empty_returns_empty_without_query():
+def test_get_metadata_empty_returns_empty_without_query():
     client = _CapturingClient()
     repo = TokenMetadataRepository(client)
-    result = repo.enrich([])
+    result = repo.get_metadata([])
 
     assert result == []
     assert client.calls == []
@@ -100,25 +97,34 @@ def test_enrich_empty_returns_empty_without_query():
 
 # ── result mapping ────────────────────────────────────────────────────────────
 
-def test_enrich_maps_rows_to_enriched_tokens():
-    traded = make_traded_stats(token_id=99)
+def test_get_metadata_maps_rows_to_token_metadata():
     fake_row = (
         99, "Yes", 7, "cond_x", "Will it?", "will-it", None, ["Politics"],
     )
     client = _CapturingClient(rows=[fake_row])
     repo = TokenMetadataRepository(client)
-    result = repo.enrich([traded])
+    result = repo.get_metadata([99])
 
     assert len(result) == 1
-    assert result[0].traded.token_id == 99
-    assert result[0].metadata.outcome == "Yes"
-    assert result[0].metadata.tags == ("Politics",)
+    assert result[0].token_id == 99
+    assert result[0].outcome == "Yes"
+    assert result[0].tags == ("Politics",)
+    assert result[0].condition_id == "cond_x"
 
 
-def test_enrich_skips_tokens_without_metadata():
-    traded = make_traded_stats(token_id=7)
-    client = _CapturingClient(rows=[])  # DB returns nothing
+def test_get_metadata_empty_db_response_returns_empty():
+    client = _CapturingClient(rows=[])
     repo = TokenMetadataRepository(client)
-    result = repo.enrich([traded])
+    result = repo.get_metadata([7])
 
     assert result == []
+
+
+def test_get_metadata_uses_inner_join_not_in():
+    client = _CapturingClient()
+    repo = TokenMetadataRepository(client)
+    repo.get_metadata([1, 2, 3])
+
+    sql = client.calls[0]["sql"].lower()
+    assert "inner join" in sql
+    assert "input_tokens" in sql
