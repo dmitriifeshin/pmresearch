@@ -96,3 +96,24 @@ class WalletMarketUniverseResult:
     rejected_count: int
     pairs: list[TokenPair]
     selection: SelectionResult
+
+    def pipeline_summary(self) -> list[dict]:
+        """Pipeline funnel as list[dict] — wrap in pd.DataFrame() in a notebook."""
+        return [
+            {"stage": "wallet_stats",  "count": self.wallet_stats_count},
+            {"stage": "market_stats",  "count": self.market_stats_count},
+            {"stage": "metadata",      "count": self.metadata_count},
+            {"stage": "contexts",      "count": self.contexts_count},
+            {"stage": "selected",      "count": self.selected_count},
+            {"stage": "rejected",      "count": self.rejected_count},
+            {"stage": "pairs",         "count": len(self.pairs)},
+        ]
+
+    def rejection_summary(self) -> list[dict]:
+        """Rejection counts by reason, sorted descending — wrap in pd.DataFrame()."""
+        return [
+            {"reason": reason, "count": count}
+            for reason, count in sorted(
+                self.selection.stats.items(), key=lambda x: x[1], reverse=True
+            )
+        ]
