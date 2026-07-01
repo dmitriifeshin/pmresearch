@@ -135,7 +135,7 @@ def test_min_market_volume_missing_market_stats_rejects():
 
 # ── BinaryOutcomeFilter ──────────────────────────────────────────────────────
 
-@pytest.mark.parametrize("outcome", ["Yes", "No", "yes", "no", " Yes "])
+@pytest.mark.parametrize("outcome", ["Yes", "No", "yes", "no", " Yes ", "Up", "Down", "up", "down", " Up "])
 def test_binary_keeps_valid(outcome):
     assert BinaryOutcomeFilter()(make_context(outcome=outcome)).keep
 
@@ -147,3 +147,21 @@ def test_binary_missing_metadata_rejects():
     d = BinaryOutcomeFilter()(make_context(include_metadata=False))
     assert not d.keep
     assert d.reason == "missing_metadata"
+
+
+# ── normalize_binary_outcome ──────────────────────────────────────────────────
+
+from pmresearch.filters import normalize_binary_outcome
+
+@pytest.mark.parametrize("outcome,expected", [
+    ("Yes", "yes"), ("yes", "yes"), (" Yes ", "yes"),
+    ("No", "no"),  ("no", "no"),
+    ("Up", "yes"), ("up", "yes"), (" Up ", "yes"),
+    ("Down", "no"), ("down", "no"),
+])
+def test_normalize_binary_outcome_known(outcome, expected):
+    assert normalize_binary_outcome(outcome) == expected
+
+@pytest.mark.parametrize("outcome", ["Draw", "Maybe", "", "Higher"])
+def test_normalize_binary_outcome_unknown_returns_none(outcome):
+    assert normalize_binary_outcome(outcome) is None

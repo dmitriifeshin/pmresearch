@@ -108,6 +108,21 @@ def test_unknown_condition_in_rows_ignored():
     assert pairs[0].condition_id == "c1"
 
 
+def test_up_down_market_pairs_and_normalizes_outcome():
+    """Up/Down outcomes are treated as Yes/No aliases."""
+    wallet = {"c1": make_context(token_id=100, outcome="Up", condition_id="c1")}
+    rows = [
+        _row(100, "Up",   "c1"),
+        _row(200, "Down", "c1"),
+    ]
+    pairs = build_pairs(wallet, rows)
+    assert len(pairs) == 1
+    p = pairs[0]
+    assert p.yes_token_id == 100   # Up → yes side
+    assert p.no_token_id == 200    # Down → no side
+    assert p.wallet_traded_outcome == "yes"  # normalized from "Up"
+
+
 def test_build_pairs_without_metadata_uses_empty_outcome():
     ws = make_wallet_stats(token_id=100)
     ctx = WalletTokenContext(wallet_stats=ws, market_stats=None, metadata=None)

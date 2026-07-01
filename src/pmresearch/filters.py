@@ -115,16 +115,28 @@ class MinMarketVolumeFilter:
         )
 
 
-class BinaryOutcomeFilter:
-    """Keep only tokens with a clear Yes/No outcome (case-insensitive)."""
+# Canonical mapping: raw outcome (lowercased) → "yes" | "no"
+# Up/Down are directional aliases used on some Polymarket markets.
+_BINARY_OUTCOME_MAP: dict[str, str] = {
+    "yes": "yes",
+    "no": "no",
+    "up": "yes",
+    "down": "no",
+}
 
-    _VALID = {"yes", "no"}
+
+def normalize_binary_outcome(outcome: str) -> str | None:
+    """Return 'yes' or 'no' for any recognised binary outcome, else None."""
+    return _BINARY_OUTCOME_MAP.get(outcome.strip().lower())
+
+
+class BinaryOutcomeFilter:
+    """Keep only tokens with a recognised binary outcome (Yes/No/Up/Down)."""
 
     def __call__(self, token: WalletTokenContext) -> FilterDecision:
         if token.metadata is None:
             return FilterDecision(keep=False, reason="missing_metadata")
-        outcome = token.metadata.outcome.strip().lower()
-        if outcome in self._VALID:
+        if normalize_binary_outcome(token.metadata.outcome) is not None:
             return FilterDecision(keep=True)
         return FilterDecision(
             keep=False,

@@ -5,6 +5,7 @@ from typing import Any, Protocol
 
 from clickhouse_connect.driver.external import ExternalData
 
+from .filters import normalize_binary_outcome
 from .models import TokenPair, WalletTokenContext
 
 
@@ -92,10 +93,10 @@ def build_pairs(
         yes_row = None
         no_row = None
         for row in rows:
-            outcome = (row[1] or "").strip().lower()
-            if outcome == "yes":
+            normalized = normalize_binary_outcome(row[1] or "")
+            if normalized == "yes":
                 yes_row = row
-            elif outcome == "no":
+            elif normalized == "no":
                 no_row = row
 
         if yes_row is None or no_row is None:
@@ -103,7 +104,7 @@ def build_pairs(
 
         wallet_outcome = ""
         if wallet_context.metadata is not None:
-            wallet_outcome = wallet_context.metadata.outcome.strip().lower()
+            wallet_outcome = normalize_binary_outcome(wallet_context.metadata.outcome) or ""
 
         pairs.append(
             TokenPair(
