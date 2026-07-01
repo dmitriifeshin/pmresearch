@@ -9,11 +9,16 @@ description = "Polymarket token analytics library"
 requires-python = ">=3.10"
 dependencies = [
     "clickhouse-connect>=0.7",
+    "numpy>=1.24",
 ]
 
 [project.optional-dependencies]
+plot = [
+    "matplotlib>=3.5",
+]
 dev = [
     "pytest>=8.0",
+    "matplotlib>=3.5",
 ]
 
 [tool.hatch.build.targets.wheel]

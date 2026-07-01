@@ -5,7 +5,8 @@ Polymarket token analytics — строит market universe для адреса 
 ## Установка
 
 ```bash
-pip install -e ".[dev]"
+pip install -e ".[dev]"       # тесты
+pip install -e ".[dev,plot]"  # тесты + matplotlib для графиков
 ```
 
 ## Пример (Jupyter notebook)
@@ -114,6 +115,54 @@ OutcomePairResolver.resolve_pairs()       — tokens JOIN input_conditions → l
 через temporary table `input_tokens` (ExternalData), а не через `IN (...)`. Это позволяет
 избежать огромных SQL-строк при большом числе токенов.
 
+## Tag-level overview
+
+Анализ поведения адреса по тегам поверх результата основного пайплайна.
+
+```python
+from pmresearch.tag_analysis import TagMetricsBuilder, TagMetricsPlotter
+
+# result — WalletMarketUniverseResult от builder.build(address)
+tag_result = TagMetricsBuilder().build_from_universe_result(
+    result,
+    tags=["Politics", "Sports", "Crypto"],
+)
+
+# summary по тегам
+tag_result.summary_table()
+# [{"tag": "Politics", "tokens_count": 12, "total_usd_buy_volume": 340.5,
+#   "mean_roi": nan, "median_roi": nan, "winrate": nan}, ...]
+
+# per-tag графики
+plotter = TagMetricsPlotter(tag_result)
+
+fig = plotter.plot_usd_buy_volume_distribution("Politics")
+fig = plotter.plot_time_to_end_distribution("Politics")
+fig = plotter.plot_market_popularity_distribution("Politics", kind="unique_traders_count")
+fig = plotter.plot_pnl_vs_buy_volume("Politics")    # Y-ось nan до реализации PnL
+
+# cross-tag overview
+fig = plotter.plot_tokens_count_by_tag()
+fig = plotter.plot_total_buy_volume_by_tag()
+fig = plotter.plot_median_roi_by_tag()
+
+# все 6 графиков для одного тега
+figs = plotter.plot_all_for_tag("Politics")
+```
+
+### Статус метрик
+
+| Метрика | Источник | Статус |
+|---|---|---|
+| `usd_buy_volume` | `wallet_stats.wallet_buy_usd_volume` | ✓ готово |
+| `time_to_end_at_entry_hours` | `metadata.end_ts - wallet_first_trade_ts` | ✓ готово |
+| `market_trades_count` | `market_stats.market_trades_count` | ✓ готово |
+| `market_volume` | `market_stats.market_volume` | ✓ готово |
+| `unique_traders_count` | `market_stats.unique_traders_count` | ✓ готово |
+| `pnl` | — | TODO: нужно подтвердить единицы `wallet_sell_token_volume` |
+| `roi` | `pnl / usd_buy_volume` | TODO: зависит от PnL |
+| `avg_buy_price` | — | TODO: нужно подтвердить единицы `last_price` |
+
 ## Тесты
 
 ```bash
@@ -124,3 +173,4 @@ pytest
 - `WalletTokenContextBuilder` и фильтры — чистые функции
 - `build_pairs` — чистая функция
 - репозитории тестируются через capturing mock client
+- `TagMetricsBuilder` и `TagMetricsPlotter` — тестируются без ClickHouse
