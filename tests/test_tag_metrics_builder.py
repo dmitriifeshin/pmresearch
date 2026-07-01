@@ -4,7 +4,7 @@ import math
 import numpy as np
 import pytest
 
-from pmresearch.tag_analysis import TagMetricsBuilder
+from pmresearch.tag_analysis import ALL_TAGS, TagMetricsBuilder
 from pmresearch.tag_analysis.metrics import calc_roi, calc_time_to_end_hours, calc_winrate
 
 from helpers import make_context, make_market_stats, make_metadata, make_wallet_stats
@@ -49,6 +49,42 @@ def test_multiple_tokens_same_tag():
     contexts = [make_context(token_id=i, tags=("Politics",)) for i in range(5)]
     result = TagMetricsBuilder().build(contexts, tags=["Politics"])
     assert result.get("Politics").tokens_count == 5
+
+
+# ── ALL_TAGS sentinel ─────────────────────────────────────────────────────────
+
+def test_all_tags_contains_every_token_with_metadata():
+    contexts = [
+        make_context(token_id=1, tags=("Politics",)),
+        make_context(token_id=2, tags=("Crypto",)),
+        make_context(token_id=3, tags=()),
+    ]
+    result = TagMetricsBuilder().build(contexts, tags=[ALL_TAGS])
+    assert result.get(ALL_TAGS).tokens_count == 3
+
+
+def test_all_tags_excludes_tokens_without_metadata():
+    contexts = [
+        make_context(token_id=1, tags=("Politics",)),
+        make_context(token_id=2, include_metadata=False),
+    ]
+    result = TagMetricsBuilder().build(contexts, tags=[ALL_TAGS])
+    assert result.get(ALL_TAGS).tokens_count == 1
+
+
+def test_all_tags_alongside_specific_tags():
+    contexts = [
+        make_context(token_id=1, tags=("Politics",)),
+        make_context(token_id=2, tags=("Crypto",)),
+    ]
+    result = TagMetricsBuilder().build(contexts, tags=["Politics", ALL_TAGS])
+    assert result.get("Politics").tokens_count == 1
+    assert result.get(ALL_TAGS).tokens_count == 2
+
+
+def test_all_tags_is_available_in_result_tags():
+    result = TagMetricsBuilder().build([], tags=["Politics", ALL_TAGS])
+    assert ALL_TAGS in result.tags
 
 
 # ── array lengths are consistent ──────────────────────────────────────────────

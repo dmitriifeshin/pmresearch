@@ -8,6 +8,10 @@ from ..models import WalletMarketUniverseResult, WalletTokenContext
 from .metrics import calc_roi, calc_time_to_end_hours
 from .models import TagAnalysisResult, TagMetricArrays
 
+# Pass this sentinel in the `tags` list to get an aggregate group covering every
+# token that has metadata, regardless of its own tags.
+ALL_TAGS = "*"
+
 
 class TagMetricsBuilder:
     def build(
@@ -16,6 +20,7 @@ class TagMetricsBuilder:
         tags: list[str],
     ) -> TagAnalysisResult:
         tag_set = set(tags)
+        include_all = ALL_TAGS in tag_set
         groups: dict[str, list[WalletTokenContext]] = defaultdict(list)
 
         for ctx in tokens:
@@ -24,6 +29,8 @@ class TagMetricsBuilder:
             for t in ctx.metadata.tags:
                 if t in tag_set:
                     groups[t].append(ctx)
+            if include_all:
+                groups[ALL_TAGS].append(ctx)
 
         by_tag = {tag: self._build_arrays(tag, groups.get(tag, [])) for tag in tags}
         return TagAnalysisResult(tags=list(tags), by_tag=by_tag)

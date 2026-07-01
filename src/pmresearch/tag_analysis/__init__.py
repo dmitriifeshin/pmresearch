@@ -1,5 +1,5 @@
-from .builder import TagMetricsBuilder
+from .builder import ALL_TAGS, TagMetricsBuilder
 from .models import TagAnalysisResult, TagMetricArrays
 from .plotting import TagMetricsPlotter
 
-__all__ = ["TagMetricsBuilder", "TagMetricsPlotter", "TagAnalysisResult", "TagMetricArrays"]
+__all__ = ["ALL_TAGS", "TagMetricsBuilder", "TagMetricsPlotter", "TagAnalysisResult", "TagMetricArrays"]
