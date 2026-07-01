@@ -109,21 +109,28 @@ class TagMetricsBuilder:
 
     @staticmethod
     def _extract_pnl(ctx: WalletTokenContext) -> float:
-        # TODO: implement once price units are confirmed.
-        # Candidate formula (realized + unrealized):
-        #   realized  = wallet_sell_usd_volume - fraction_of_buy_cost_for_sold_tokens
-        #   unrealized = remaining_tokens * last_price_usd
-        # Blocker: wallet_sell_token_volume uses raw `amount` (token units for sells)
-        # while wallet_buy_token_volume uses `amount * 10000 / price` (different unit basis).
-        # Confirm schema before wiring.
-        return float("nan")
+        ws = ctx.wallet_stats
+        ms = ctx.market_stats
+        # Both volumes are in raw token units (1e6 = 1 human token):
+        #   buy_token_volume  = sum(amount * 10000 / price)  [side=0, amount=micro-USDC]
+        #   sell_token_volume = sum(amount)                   [side=1, amount=raw token units]
+        remaining = max(0.0, ws.wallet_buy_token_volume - ws.wallet_sell_token_volume)
+        if remaining > 0:
+            if ms is None:
+                return float("nan")
+            # last_price is price_real * 10000; convert remaining raw units → USDC
+            unrealized = remaining * ms.last_price / (10_000 * 1_000_000)
+        else:
+            unrealized = 0.0
+        return ws.wallet_sell_usd_volume + unrealized - ws.wallet_buy_usd_volume
 
     @staticmethod
     def _extract_avg_buy_price(ctx: WalletTokenContext) -> float:
-        # TODO: implement once price units are confirmed.
-        # Candidate: wallet_buy_usd_volume / wallet_buy_token_volume
-        # Blocker: need to verify that both are in consistent units (USDC vs raw token).
-        return float("nan")
+        ws = ctx.wallet_stats
+        if ws.wallet_buy_token_volume == 0:
+            return float("nan")
+        # buy_token_volume is in raw units (1e6 = 1 token); result in USDC/token
+        return ws.wallet_buy_usd_volume * 1_000_000 / ws.wallet_buy_token_volume
 
 
 def _empty_arrays(tag: str) -> TagMetricArrays:

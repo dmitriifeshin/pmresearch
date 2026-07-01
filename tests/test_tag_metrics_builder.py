@@ -7,7 +7,7 @@ import pytest
 from pmresearch.tag_analysis import TagMetricsBuilder
 from pmresearch.tag_analysis.metrics import calc_roi, calc_time_to_end_hours, calc_winrate
 
-from helpers import make_context, make_market_stats, make_wallet_stats
+from helpers import make_context, make_market_stats, make_metadata, make_wallet_stats
 from pmresearch.models import WalletTokenContext
 
 
@@ -108,7 +108,19 @@ def test_usd_buy_volume_taken_from_wallet_stats():
 # ── roi ───────────────────────────────────────────────────────────────────────
 
 def test_roi_is_nan_when_pnl_is_nan():
-    ctx = make_context(token_id=1, tags=("Politics",))
+    # pnl is nan when tokens remain unsold and market_stats is absent
+    ws = make_wallet_stats(
+        token_id=1,
+        wallet_buy_token_volume=20_000_000,
+        wallet_sell_token_volume=10_000_000,
+        wallet_buy_usd_volume=10.0,
+        wallet_sell_usd_volume=6.0,
+    )
+    ctx = WalletTokenContext(
+        wallet_stats=ws,
+        market_stats=None,
+        metadata=make_metadata(1, tags=("Politics",)),
+    )
     arrays = TagMetricsBuilder().build([ctx], tags=["Politics"]).get("Politics")
     assert math.isnan(arrays.roi[0])
 
@@ -121,18 +133,94 @@ def test_calc_roi_normal():
     assert calc_roi(5.0, 20.0) == pytest.approx(0.25)
 
 
-# ── pnl / avg_buy_price are nan (TODO) ───────────────────────────────────────
+# ── pnl ──────────────────────────────────────────────────────────────────────
 
-def test_pnl_is_nan_todo():
-    ctx = make_context(token_id=1, tags=("Politics",))
+def test_pnl_fully_realized():
+    """All tokens sold: pnl = sell_usd - buy_usd."""
+    ws = make_wallet_stats(
+        token_id=1,
+        wallet_buy_token_volume=20_000_000,
+        wallet_sell_token_volume=20_000_000,
+        wallet_buy_usd_volume=10.0,
+        wallet_sell_usd_volume=12.0,
+    )
+    ctx = WalletTokenContext(
+        wallet_stats=ws,
+        market_stats=make_market_stats(1, last_price=7000),
+        metadata=make_metadata(1, tags=("Politics",)),
+    )
     arrays = TagMetricsBuilder().build([ctx], tags=["Politics"]).get("Politics")
-    assert all(math.isnan(v) for v in arrays.pnl)
+    assert arrays.pnl[0] == pytest.approx(2.0)
 
 
-def test_avg_buy_price_is_nan_todo():
-    ctx = make_context(token_id=1, tags=("Politics",))
+def test_pnl_with_unrealized_portion():
+    """Remaining tokens valued at last_price."""
+    # Bought 20 tokens (20_000_000 raw) for $10; sold 10 tokens for $6.
+    # Remaining 10_000_000 raw at last_price=7000 ($0.70):
+    #   unrealized = 10_000_000 * 7000 / (10_000 * 1_000_000) = 7.0
+    #   pnl = 6.0 + 7.0 - 10.0 = 3.0
+    ws = make_wallet_stats(
+        token_id=1,
+        wallet_buy_token_volume=20_000_000,
+        wallet_sell_token_volume=10_000_000,
+        wallet_buy_usd_volume=10.0,
+        wallet_sell_usd_volume=6.0,
+    )
+    ctx = WalletTokenContext(
+        wallet_stats=ws,
+        market_stats=make_market_stats(1, last_price=7000),
+        metadata=make_metadata(1, tags=("Politics",)),
+    )
     arrays = TagMetricsBuilder().build([ctx], tags=["Politics"]).get("Politics")
-    assert all(math.isnan(v) for v in arrays.avg_buy_price)
+    assert arrays.pnl[0] == pytest.approx(3.0)
+
+
+def test_pnl_nan_when_remaining_and_no_market_stats():
+    ws = make_wallet_stats(
+        token_id=1,
+        wallet_buy_token_volume=20_000_000,
+        wallet_sell_token_volume=10_000_000,
+        wallet_buy_usd_volume=10.0,
+        wallet_sell_usd_volume=6.0,
+    )
+    ctx = WalletTokenContext(
+        wallet_stats=ws,
+        market_stats=None,
+        metadata=make_metadata(1, tags=("Politics",)),
+    )
+    arrays = TagMetricsBuilder().build([ctx], tags=["Politics"]).get("Politics")
+    assert math.isnan(arrays.pnl[0])
+
+
+# ── avg_buy_price ─────────────────────────────────────────────────────────────
+
+def test_avg_buy_price_value():
+    """avg_buy_price = buy_usd * 1e6 / buy_token_volume → $0.50/token."""
+    ws = make_wallet_stats(
+        token_id=1,
+        wallet_buy_token_volume=20_000_000,
+        wallet_sell_token_volume=20_000_000,
+        wallet_buy_usd_volume=10.0,
+        wallet_sell_usd_volume=10.0,
+    )
+    ctx = WalletTokenContext(
+        wallet_stats=ws,
+        market_stats=make_market_stats(1, last_price=5000),
+        metadata=make_metadata(1, tags=("Politics",)),
+    )
+    arrays = TagMetricsBuilder().build([ctx], tags=["Politics"]).get("Politics")
+    assert arrays.avg_buy_price[0] == pytest.approx(0.5)
+
+
+def test_avg_buy_price_nan_when_zero_buy_token_volume():
+    ws = make_wallet_stats(token_id=1, wallet_buy_token_volume=0.0)
+    ctx = WalletTokenContext(
+        wallet_stats=ws,
+        market_stats=make_market_stats(1),
+        metadata=make_metadata(1, tags=("Politics",)),
+    )
+    arrays = TagMetricsBuilder().build([ctx], tags=["Politics"]).get("Politics")
+    assert math.isnan(arrays.avg_buy_price[0])
 
 
 # ── time_to_end ───────────────────────────────────────────────────────────────
@@ -189,7 +277,17 @@ def test_summary_table_total_usd_buy_volume():
 
 
 def test_winrate_with_all_nan_pnl_is_nan():
-    ctx = make_context(token_id=1, tags=("Politics",))
+    # pnl is nan when remaining > 0 but no market_stats
+    ws = make_wallet_stats(
+        token_id=1,
+        wallet_buy_token_volume=20_000_000,
+        wallet_sell_token_volume=10_000_000,
+    )
+    ctx = WalletTokenContext(
+        wallet_stats=ws,
+        market_stats=None,
+        metadata=make_metadata(1, tags=("Politics",)),
+    )
     arrays = TagMetricsBuilder().build([ctx], tags=["Politics"]).get("Politics")
     assert math.isnan(arrays.winrate)
 
