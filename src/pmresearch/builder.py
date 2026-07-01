@@ -57,8 +57,9 @@ class WalletMarketUniverseBuilder:
         since: datetime | None = None,
         until: datetime | None = None,
         metadata_as_of: datetime | None = None,
+        only_taker: bool = True,
     ) -> WalletMarketUniverseResult:
-        wallet_stats = self._wallet_stats_repo.get_stats(address, since=since, until=until)
+        wallet_stats = self._wallet_stats_repo.get_stats(address, since=since, until=until, only_taker=only_taker)
         token_ids = [ws.token_id for ws in wallet_stats]
         market_stats = self._market_stats_repo.get_stats(token_ids, since=since, until=until)
         metadata = self._metadata_repo.get_metadata(token_ids, metadata_as_of=metadata_as_of)
