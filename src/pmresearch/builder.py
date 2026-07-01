@@ -65,7 +65,7 @@ class WalletMarketUniverseBuilder:
         metadata = self._metadata_repo.get_metadata(token_ids, metadata_as_of=metadata_as_of)
         contexts = self._context_builder.build(wallet_stats, market_stats, metadata)
         selection = self._selector.select(contexts)
-        pairs = self._resolver.resolve_pairs(selection.selected)
+        pairs = self._resolver.resolve_pairs(contexts)
 
         return WalletMarketUniverseResult(
             wallet_stats_count=len(wallet_stats),
