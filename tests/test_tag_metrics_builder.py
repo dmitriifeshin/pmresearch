@@ -95,6 +95,8 @@ def test_all_per_token_arrays_have_same_length():
     n = arrays.tokens_count
     assert len(arrays.pnl) == n
     assert len(arrays.roi) == n
+    assert len(arrays.net_pnl) == n
+    assert len(arrays.net_roi) == n
     assert len(arrays.usd_buy_volume) == n
     assert len(arrays.avg_buy_price) == n
     assert len(arrays.time_to_end_at_entry_hours) == n
@@ -336,6 +338,64 @@ def test_winrate_logic():
 def test_empty_tag_returns_zero_tokens():
     result = TagMetricsBuilder().build([], tags=["Politics"])
     assert result.get("Politics").tokens_count == 0
+
+
+# ── build_from_universe_result ────────────────────────────────────────────────
+
+# ── net_pnl / net_roi ────────────────────────────────────────────────────────
+
+def test_net_pnl_subtracts_fee():
+    # pnl = 3.0 (from test_pnl_with_unrealized_portion), fee = 0.5 → net_pnl = 2.5
+    ws = make_wallet_stats(
+        token_id=1,
+        wallet_buy_token_volume=20_000_000,
+        wallet_sell_token_volume=10_000_000,
+        wallet_buy_usd_volume=10.0,
+        wallet_sell_usd_volume=6.0,
+        wallet_fee_usd=0.5,
+    )
+    ctx = WalletTokenContext(
+        wallet_stats=ws,
+        market_stats=make_market_stats(1, last_price=7000),
+        metadata=make_metadata(1, tags=("Politics",)),
+    )
+    arrays = TagMetricsBuilder().build([ctx], tags=["Politics"]).get("Politics")
+    assert arrays.net_pnl[0] == pytest.approx(2.5)
+
+
+def test_net_pnl_nan_when_pnl_is_nan():
+    ws = make_wallet_stats(
+        token_id=1,
+        wallet_buy_token_volume=20_000_000,
+        wallet_sell_token_volume=10_000_000,
+        wallet_fee_usd=0.5,
+    )
+    ctx = WalletTokenContext(
+        wallet_stats=ws,
+        market_stats=None,
+        metadata=make_metadata(1, tags=("Politics",)),
+    )
+    arrays = TagMetricsBuilder().build([ctx], tags=["Politics"]).get("Politics")
+    assert math.isnan(arrays.net_pnl[0])
+
+
+def test_net_roi_uses_net_pnl():
+    ws = make_wallet_stats(
+        token_id=1,
+        wallet_buy_token_volume=20_000_000,
+        wallet_sell_token_volume=20_000_000,
+        wallet_buy_usd_volume=10.0,
+        wallet_sell_usd_volume=12.0,
+        wallet_fee_usd=1.0,
+    )
+    ctx = WalletTokenContext(
+        wallet_stats=ws,
+        market_stats=make_market_stats(1, last_price=5000),
+        metadata=make_metadata(1, tags=("Politics",)),
+    )
+    arrays = TagMetricsBuilder().build([ctx], tags=["Politics"]).get("Politics")
+    # pnl = 2.0, net_pnl = 1.0, net_roi = 1.0 / 10.0 = 0.1
+    assert arrays.net_roi[0] == pytest.approx(0.1)
 
 
 # ── build_from_universe_result ────────────────────────────────────────────────

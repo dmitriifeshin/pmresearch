@@ -56,10 +56,11 @@ class WalletTokenStatsRepository:
                 sum(amount)                                                AS wallet_volume,
                 countIf(side = 0)                                          AS wallet_buy_count,
                 countIf(side = 1)                                          AS wallet_sell_count,
-                sumIf(toFloat64(amount) * 10000 / price, side = 0)        AS wallet_buy_token_volume,
-                sumIf(amount, side = 1)                                    AS wallet_sell_token_volume,
-                sumIf(amount, side = 0) / 1e6                             AS wallet_buy_usd_volume,
-                sumIf(toFloat64(amount) * price / 10000, side = 1) / 1e6  AS wallet_sell_usd_volume
+                sumIf(toFloat64(amount) * 10000 / price, side = 0)                                  AS wallet_buy_token_volume,
+                sumIf(amount, side = 1)                                                              AS wallet_sell_token_volume,
+                sumIf(amount, side = 0) / 1e6                                                       AS wallet_buy_usd_volume,
+                sumIf(toFloat64(amount) * price / 10000, side = 1) / 1e6                            AS wallet_sell_usd_volume,
+                (sumIf(toFloat64(fee) * price / 10000, side = 0) + sumIf(toFloat64(fee), side = 1)) / 1e6  AS wallet_fee_usd
             FROM default.trades_bq
             WHERE {where}
             GROUP BY token_id
@@ -78,6 +79,7 @@ class WalletTokenStatsRepository:
                 wallet_sell_token_volume=r[8],
                 wallet_buy_usd_volume=r[9],
                 wallet_sell_usd_volume=r[10],
+                wallet_fee_usd=r[11],
             )
             for r in rows
         ]

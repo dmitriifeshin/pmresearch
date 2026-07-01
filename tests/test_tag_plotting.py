@@ -30,6 +30,8 @@ def _make_arrays(tag: str, n: int = 5, all_nan: bool = False) -> TagMetricArrays
         slugs=np.array([f"slug-{i}" for i in range(n)], dtype=object),
         pnl=vals.copy(),
         roi=vals.copy() * 0.1,
+        net_pnl=vals.copy() - 0.1,
+        net_roi=vals.copy() * 0.09,
         usd_buy_volume=vals.copy() * 10,
         avg_buy_price=vals.copy() * 0.5,
         time_to_end_at_entry_hours=vals.copy() * 24,

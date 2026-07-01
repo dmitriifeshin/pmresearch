@@ -54,6 +54,8 @@ class TagMetricsBuilder:
         slugs: list = []
         pnls: list[float] = []
         rois: list[float] = []
+        net_pnls: list[float] = []
+        net_rois: list[float] = []
         buy_vols: list[float] = []
         avg_prices: list[float] = []
         times_to_end: list[float] = []
@@ -77,6 +79,10 @@ class TagMetricsBuilder:
             pnl = self._extract_pnl(ctx)
             pnls.append(pnl)
             rois.append(calc_roi(pnl, usd_buy))
+
+            net_pnl = pnl - ws.wallet_fee_usd
+            net_pnls.append(net_pnl)
+            net_rois.append(calc_roi(net_pnl, usd_buy))
 
             avg_prices.append(self._extract_avg_buy_price(ctx))
 
@@ -104,6 +110,8 @@ class TagMetricsBuilder:
             slugs=np.array(slugs, dtype=object),
             pnl=pnl_arr,
             roi=np.array(rois, dtype=float),
+            net_pnl=np.array(net_pnls, dtype=float),
+            net_roi=np.array(net_rois, dtype=float),
             usd_buy_volume=buy_vol_arr,
             avg_buy_price=np.array(avg_prices, dtype=float),
             time_to_end_at_entry_hours=np.array(times_to_end, dtype=float),
@@ -151,6 +159,8 @@ def _empty_arrays(tag: str) -> TagMetricArrays:
         slugs=empty_o.copy(),
         pnl=empty_f.copy(),
         roi=empty_f.copy(),
+        net_pnl=empty_f.copy(),
+        net_roi=empty_f.copy(),
         usd_buy_volume=empty_f.copy(),
         avg_buy_price=empty_f.copy(),
         time_to_end_at_entry_hours=empty_f.copy(),
