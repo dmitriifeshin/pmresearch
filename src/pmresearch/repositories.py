@@ -53,14 +53,13 @@ class WalletTokenStatsRepository:
                 min(block_ts)                                              AS wallet_first_trade_ts,
                 max(block_ts)                                              AS wallet_last_trade_ts,
                 count()                                                    AS wallet_trades_count,
-                sum(amount)                                                AS wallet_volume,
                 countIf(side = 0)                                          AS wallet_buy_count,
                 countIf(side = 1)                                          AS wallet_sell_count,
                 sumIf(toFloat64(amount) * 10000 / price, side = 0)                                  AS wallet_buy_token_volume,
                 sumIf(amount, side = 1)                                                              AS wallet_sell_token_volume,
                 sumIf(amount, side = 0) / 1e6                                                       AS wallet_buy_usd_volume,
                 sumIf(toFloat64(amount) * price / 10000, side = 1) / 1e6                            AS wallet_sell_usd_volume,
-                (sumIf(toFloat64(fee) * price / 10000, side = 0) + sumIf(toFloat64(fee), side = 1)) / 1e6  AS wallet_fee_usd
+                (sumIf(toFloat64(fee) * price / 10000, side = 1) + sumIf(toFloat64(fee), side = 0)) / 1e6  AS wallet_fee_usd
             FROM default.trades_bq
             WHERE {where}
             GROUP BY token_id
@@ -72,14 +71,13 @@ class WalletTokenStatsRepository:
                 wallet_first_trade_ts=r[1],
                 wallet_last_trade_ts=r[2],
                 wallet_trades_count=r[3],
-                wallet_volume=r[4],
-                wallet_buy_count=r[5],
-                wallet_sell_count=r[6],
-                wallet_buy_token_volume=r[7],
-                wallet_sell_token_volume=r[8],
-                wallet_buy_usd_volume=r[9],
-                wallet_sell_usd_volume=r[10],
-                wallet_fee_usd=r[11],
+                wallet_buy_count=r[4],
+                wallet_sell_count=r[5],
+                wallet_buy_token_volume=r[6],
+                wallet_sell_token_volume=r[7],
+                wallet_buy_usd_volume=r[8],
+                wallet_sell_usd_volume=r[9],
+                wallet_fee_usd=r[10],
             )
             for r in rows
         ]
@@ -122,7 +120,6 @@ class TokenMarketStatsRepository:
                 tr.token_id,
                 min(tr.block_ts)              AS market_first_trade_ts,
                 max(tr.block_ts)              AS market_last_trade_ts,
-                -- TODO: use argMax(tr.price, tuple(tr.block, tr.pos_in_block)) for tie-breaking when block_ts ties
                 argMax(tr.price, tr.block_ts) AS last_price,
                 count()                       AS market_trades_count,
                 sum(tr.amount)                AS market_volume,
