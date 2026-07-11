@@ -11,7 +11,6 @@ class WalletTokenStats:
     wallet_first_trade_ts: datetime
     wallet_last_trade_ts: datetime
     wallet_trades_count: int
-    wallet_volume: int          # raw sum(amount)
     wallet_buy_count: int
     wallet_sell_count: int
     wallet_buy_token_volume: float   # tokens bought: sum(amount_usd * 10000 / price)
