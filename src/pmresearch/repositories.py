@@ -183,10 +183,10 @@ class TokenMetadataRepository:
                 argMax(t.market_id,    t.ts) AS market_id,
                 argMax(t.condition_id, t.ts) AS condition_id,
                 argMax(t.question,     t.ts) AS question,
-                argMax(t.slug,         t.ts) AS slug,
+                argMax(t.market_slug,  t.ts) AS market_slug,
                 argMax(t.end_ts,       t.ts) AS end_ts,
-                argMax(t.tags,         t.ts) AS tags
-            FROM default.tokens AS t
+                argMax(t.tag_slugs,         t.ts) AS tag_slugs
+            FROM default.tokens_new AS t FINAL
             INNER JOIN input_tokens AS it ON t.token_id = it.token_id
             {where_clause}
             GROUP BY t.token_id

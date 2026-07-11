@@ -79,10 +79,6 @@ class MinWalletTradesFilter:
         )
 
 
-# backward-compatible alias
-MinTradesFilter = MinWalletTradesFilter
-
-
 class MinMarketTradesFilter:
     def __init__(self, min_trades: int) -> None:
         self._min = min_trades
