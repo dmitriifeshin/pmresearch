@@ -41,8 +41,8 @@ class OutcomePairResolver:
                 argMax(t.question,     t.ts) AS question,
                 argMax(t.slug,         t.ts) AS slug,
                 argMax(t.end_ts,       t.ts) AS end_ts,
-                argMax(t.tags,         t.ts) AS tags
-            FROM default.tokens AS t
+                argMax(t.tag_slugs,    t.ts) AS tags
+            FROM default.tokens_new AS t FINAL
             INNER JOIN input_conditions AS ic ON t.condition_id = ic.condition_id
             GROUP BY t.token_id
         """
@@ -100,6 +100,7 @@ def build_pairs(
                 no_row = row
 
         if yes_row is None or no_row is None:
+            print("AAAAAAAA")
             continue
 
         wallet_outcome = ""
