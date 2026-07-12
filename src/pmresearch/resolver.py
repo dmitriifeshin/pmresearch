@@ -58,9 +58,11 @@ def _index_by_condition(
     index: dict[str, WalletTokenContext] = {}
     for token in tokens:
         if token.metadata is None:
+            print("Token no metadata")
             continue
         cid = token.metadata.condition_id
         if cid is None:
+            print("Token no cid")
             continue
         existing = index.get(cid)
         if existing is None or token.wallet_stats.wallet_trades_count > existing.wallet_stats.wallet_trades_count:
