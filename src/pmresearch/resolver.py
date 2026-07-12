@@ -26,6 +26,7 @@ class OutcomePairResolver:
             return []
 
         cids = sorted(wallet_by_condition.keys())
+        print(len(cids))
         external_data = ExternalData(
             data="\n".join(cids).encode(),
             file_name="input_conditions",
