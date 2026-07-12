@@ -25,6 +25,7 @@ class TagMetricsBuilder:
 
         for ctx in tokens:
             if ctx.metadata is None:
+                print("no context!")
                 continue
             for t in ctx.metadata.tags:
                 if t in tag_set:
@@ -54,7 +55,6 @@ class TagMetricsBuilder:
         slugs: list = []
         pnls: list[float] = []
         rois: list[float] = []
-        net_pnls: list[float] = []
         net_rois: list[float] = []
         buy_vols: list[float] = []
         avg_prices: list[float] = []
@@ -79,10 +79,6 @@ class TagMetricsBuilder:
             pnl = self._extract_pnl(ctx)
             pnls.append(pnl)
             rois.append(calc_roi(pnl, usd_buy))
-
-            net_pnl = pnl - ws.wallet_fee_usd
-            net_pnls.append(net_pnl)
-            net_rois.append(calc_roi(net_pnl, usd_buy))
 
             avg_prices.append(self._extract_avg_buy_price(ctx))
 
