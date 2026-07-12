@@ -55,7 +55,6 @@ class TagMetricsBuilder:
         slugs: list = []
         pnls: list[float] = []
         rois: list[float] = []
-        net_rois: list[float] = []
         buy_vols: list[float] = []
         avg_prices: list[float] = []
         times_to_end: list[float] = []
@@ -106,8 +105,6 @@ class TagMetricsBuilder:
             slugs=np.array(slugs, dtype=object),
             pnl=pnl_arr,
             roi=np.array(rois, dtype=float),
-            net_pnl=np.array(net_pnls, dtype=float),
-            net_roi=np.array(net_rois, dtype=float),
             usd_buy_volume=buy_vol_arr,
             avg_buy_price=np.array(avg_prices, dtype=float),
             time_to_end_at_entry_hours=np.array(times_to_end, dtype=float),

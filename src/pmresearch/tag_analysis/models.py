@@ -22,8 +22,6 @@ class TagMetricArrays:
     # Core per-token metrics
     pnl: np.ndarray                      # gross pnl in USD (sell_usd + unrealized - buy_usd)
     roi: np.ndarray                      # pnl / usd_buy_volume; np.nan when usd_buy_volume=0 or pnl=nan
-    net_pnl: np.ndarray                  # pnl - fee_usd
-    net_roi: np.ndarray                  # net_pnl / usd_buy_volume
     usd_buy_volume: np.ndarray           # wallet_buy_usd_volume (USD spent on buys)
     avg_buy_price: np.ndarray            # avg entry price in USD/token
     time_to_end_at_entry_hours: np.ndarray  # metadata.end_ts - wallet_first_trade_ts in hours
@@ -48,10 +46,6 @@ class TagMetricArrays:
         return float(np.nansum(self.pnl))
 
     @property
-    def total_net_pnl(self) -> float:
-        return float(np.nansum(self.net_pnl))
-
-    @property
     def total_usd_buy_volume(self) -> float:
         return float(np.nansum(self.usd_buy_volume))
 
@@ -64,20 +58,8 @@ class TagMetricArrays:
         return nanmedian_safe(self.roi)
 
     @property
-    def mean_net_roi(self) -> float:
-        return nanmean_safe(self.net_roi)
-
-    @property
-    def median_net_roi(self) -> float:
-        return nanmedian_safe(self.net_roi)
-
-    @property
     def winrate(self) -> float:
         return calc_winrate(self.pnl)
-
-    @property
-    def net_winrate(self) -> float:
-        return calc_winrate(self.net_pnl)
 
 
 @dataclass(slots=True)
@@ -98,13 +80,9 @@ class TagAnalysisResult:
                 "tokens_count": self.by_tag[tag].tokens_count,
                 "total_usd_buy_volume": self.by_tag[tag].total_usd_buy_volume,
                 "total_pnl": self.by_tag[tag].total_pnl,
-                "total_net_pnl": self.by_tag[tag].total_net_pnl,
                 "mean_roi": self.by_tag[tag].mean_roi,
                 "median_roi": self.by_tag[tag].median_roi,
-                "mean_net_roi": self.by_tag[tag].mean_net_roi,
-                "median_net_roi": self.by_tag[tag].median_net_roi,
                 "winrate": self.by_tag[tag].winrate,
-                "net_winrate": self.by_tag[tag].net_winrate,
             }
             for tag in self.tags
             if tag in self.by_tag
