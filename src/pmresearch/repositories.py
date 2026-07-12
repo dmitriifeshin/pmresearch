@@ -34,7 +34,7 @@ class WalletTokenStatsRepository:
     ) -> list[WalletTokenStats]:
         hex_addr = _strip_0x(address).upper()
 
-        conditions = [f"address = unhex('{hex_addr}')"]
+        conditions = [f"address = unhex('{hex_addr}')", "receipt = true"]
         if only_taker:
             conditions.append("trade_type = 'taker'")
 
@@ -104,7 +104,7 @@ class TokenMarketStatsRepository:
             structure="token_id UInt256",
         )
 
-        conditions: list[str] = []
+        conditions: list[str] = ["receipt = true"]
         params: dict[str, Any] = {}
         if since is not None:
             conditions.append("tr.block_ts >= %(since)s")
