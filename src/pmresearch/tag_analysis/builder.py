@@ -152,8 +152,6 @@ def _empty_arrays(tag: str) -> TagMetricArrays:
         slugs=empty_o.copy(),
         pnl=empty_f.copy(),
         roi=empty_f.copy(),
-        net_pnl=empty_f.copy(),
-        net_roi=empty_f.copy(),
         usd_buy_volume=empty_f.copy(),
         avg_buy_price=empty_f.copy(),
         time_to_end_at_entry_hours=empty_f.copy(),
