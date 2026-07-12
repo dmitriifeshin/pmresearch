@@ -39,7 +39,7 @@ class OutcomePairResolver:
                 argMax(t.condition_id, t.ts) AS condition_id,
                 argMax(t.market_id,    t.ts) AS market_id,
                 argMax(t.question,     t.ts) AS question,
-                argMax(t.slug,         t.ts) AS slug,
+                argMax(t.market_slug,  t.ts) AS slug,
                 argMax(t.end_ts,       t.ts) AS end_ts,
                 argMax(t.tag_slugs,    t.ts) AS tags
             FROM default.tokens_new AS t FINAL
@@ -76,7 +76,7 @@ def build_pairs(
 
     market_rows columns (by position):
         0: token_id, 1: outcome, 2: condition_id, 3: market_id,
-        4: question, 5: slug, 6: end_ts, 7: tags
+        4: question, 5: market_slug, 6: end_ts, 7: tags
     """
     by_condition: dict[str, list[tuple]] = defaultdict(list)
     for row in market_rows:
