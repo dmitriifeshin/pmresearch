@@ -17,7 +17,7 @@ class WalletTokenStats:
     wallet_sell_token_volume: int    # tokens sold: sum(amount) for sells
     wallet_buy_usd_volume: float     # USD spent on buys: sum(amount) / 1e6
     wallet_sell_usd_volume: float    # USD received from sells: sum(amount * price / 10000) / 1e6
-    wallet_fee_usd: float            # fees paid in USD; buy-side fee in raw token units (×price/10000/1e6), sell-side in micro-USDC (/1e6)
+    wallet_fee_usd: float            # USD
 
 
 @dataclass(frozen=True, slots=True)
