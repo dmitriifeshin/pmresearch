@@ -130,7 +130,7 @@ class TagMetricsBuilder:
             unrealized = remaining * ms.last_price / (10_000 * 1_000_000)
         else:
             unrealized = 0.0
-        return ws.wallet_sell_usd_volume + unrealized - ws.wallet_buy_usd_volume
+        return ws.wallet_sell_usd_volume + unrealized - ws.wallet_buy_usd_volume - ws.wallet_fee_usd
 
     @staticmethod
     def _extract_avg_buy_price(ctx: WalletTokenContext) -> float:
