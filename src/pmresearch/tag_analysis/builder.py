@@ -124,11 +124,11 @@ class TagMetricsBuilder:
         #   sell_token_volume = sum(amount)                   [side=1, amount=raw token units]
         # BUY fees are charged in shares, so they reduce the position. SELL fees
         # are charged in USDC and reduce realized proceeds below.
-        remaining = (
-           ws.wallet_buy_token_volume
-            - ws.wallet_buy_fee_token_volume
-            - ws.wallet_sell_token_volume,
-        )
+        remaining = \
+           ws.wallet_buy_token_volume \
+            - ws.wallet_buy_fee_token_volume \
+            - ws.wallet_sell_token_volume
+        
             # if ms is None:
                 # return float("nan")
             # last_price is price_real * 10000; convert remaining raw units → USDC
