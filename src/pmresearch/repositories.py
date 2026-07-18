@@ -59,7 +59,7 @@ class WalletTokenStatsRepository:
                 sumIf(amount, side = 1)                                    AS wallet_sell_token_volume,
                 sumIf(amount, side = 0) / 1e6                              AS wallet_buy_usd_volume,
                 sumIf(toFloat64(amount) * price / 10000, side = 1) / 1e6   AS wallet_sell_usd_volume,
-                sum(toFloat64(fee)) / 1e6                                  AS wallet_fee_usd
+                sumIf(toFloat64(fee), side=0)/1e6 * toFloat64(price)/1e4 + sumIf(toFloat64(fee), side=1) / 1e6                                  AS wallet_fee_usd
             FROM default.trades_bq
             WHERE {where}
             GROUP BY token_id
