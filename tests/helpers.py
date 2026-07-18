@@ -6,13 +6,14 @@ from pmresearch.models import TokenMarketStats, TokenMetadata, WalletTokenContex
 def make_wallet_stats(
     token_id: int = 1,
     wallet_trades_count: int = 10,
-    wallet_volume: int = 1_000,
     wallet_buy_count: int = 6,
     wallet_sell_count: int = 4,
     wallet_buy_token_volume: float = 600.0,
     wallet_sell_token_volume: int = 400,
     wallet_buy_usd_volume: float = 30.0,
     wallet_sell_usd_volume: float = 20.0,
+    wallet_buy_fee_token_volume: float = 0.0,
+    wallet_sell_fee_usd: float = 0.0,
     wallet_fee_usd: float = 1.0,
 ) -> WalletTokenStats:
     return WalletTokenStats(
@@ -20,13 +21,14 @@ def make_wallet_stats(
         wallet_first_trade_ts=datetime(2024, 1, 1, tzinfo=timezone.utc),
         wallet_last_trade_ts=datetime(2024, 6, 1, tzinfo=timezone.utc),
         wallet_trades_count=wallet_trades_count,
-        wallet_volume=wallet_volume,
         wallet_buy_count=wallet_buy_count,
         wallet_sell_count=wallet_sell_count,
         wallet_buy_token_volume=wallet_buy_token_volume,
         wallet_sell_token_volume=wallet_sell_token_volume,
         wallet_buy_usd_volume=wallet_buy_usd_volume,
         wallet_sell_usd_volume=wallet_sell_usd_volume,
+        wallet_buy_fee_token_volume=wallet_buy_fee_token_volume,
+        wallet_sell_fee_usd=wallet_sell_fee_usd,
         wallet_fee_usd=wallet_fee_usd,
     )
 

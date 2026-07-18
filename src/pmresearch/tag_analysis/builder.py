@@ -119,10 +119,17 @@ class TagMetricsBuilder:
     def _extract_pnl(ctx: WalletTokenContext) -> float:
         ws = ctx.wallet_stats
         ms = ctx.market_stats
-        # Both volumes are in raw token units (1e6 = 1 human token):
+        # All token volumes are raw units (1e6 = 1 human token):
         #   buy_token_volume  = sum(amount * 10000 / price)  [side=0, amount=micro-USDC]
         #   sell_token_volume = sum(amount)                   [side=1, amount=raw token units]
-        remaining = max(0.0, ws.wallet_buy_token_volume - ws.wallet_sell_token_volume)
+        # BUY fees are charged in shares, so they reduce the position. SELL fees
+        # are charged in USDC and reduce realized proceeds below.
+        remaining = max(
+            0.0,
+            ws.wallet_buy_token_volume
+            - ws.wallet_buy_fee_token_volume
+            - ws.wallet_sell_token_volume,
+        )
         if remaining > 0:
             if ms is None:
                 return float("nan")
@@ -130,7 +137,12 @@ class TagMetricsBuilder:
             unrealized = remaining * ms.last_price / (10_000 * 1_000_000)
         else:
             unrealized = 0.0
-        return ws.wallet_sell_usd_volume + unrealized - ws.wallet_buy_usd_volume - ws.wallet_fee_usd
+        return (
+            ws.wallet_sell_usd_volume
+            - ws.wallet_sell_fee_usd
+            + unrealized
+            - ws.wallet_buy_usd_volume
+        )
 
     @staticmethod
     def _extract_avg_buy_price(ctx: WalletTokenContext) -> float:
