@@ -59,12 +59,27 @@ class WalletTokenStatsRepository:
                 sumIf(amount, side = 1)                                    AS wallet_sell_token_volume,
                 sumIf(amount, side = 0) / 1e6                              AS wallet_buy_usd_volume,
                 sumIf(toFloat64(amount) * price / 10000, side = 1) / 1e6   AS wallet_sell_usd_volume,
-                sumIf(toFloat64(fee), side = 0)                            AS wallet_buy_fee_token_volume,
+                sumIf(
+                    toFloat64(fee),
+                    side = 0
+                    AND block_ts < toDateTime('2026-04-28 11:00:00', 'UTC')
+                ) AS wallet_buy_fee_token_volume,
+                sumIf(
+                    toFloat64(fee),
+                    side = 0
+                    AND block_ts >= toDateTime('2026-04-28 11:00:00', 'UTC')
+                ) / 1e6 AS wallet_buy_fee_usd,
                 sumIf(toFloat64(fee), side = 1) / 1e6                     AS wallet_sell_fee_usd,
                 (
                     sumIf(
                         toFloat64(fee) * toFloat64(price) / 1e4,
                         side = 0
+                        AND block_ts < toDateTime('2026-04-28 11:00:00', 'UTC')
+                    )
+                    + sumIf(
+                        toFloat64(fee),
+                        side = 0
+                        AND block_ts >= toDateTime('2026-04-28 11:00:00', 'UTC')
                     )
                     + sumIf(
                         toFloat64(fee),
@@ -89,8 +104,9 @@ class WalletTokenStatsRepository:
                 wallet_buy_usd_volume=r[8],
                 wallet_sell_usd_volume=r[9],
                 wallet_buy_fee_token_volume=r[10],
-                wallet_sell_fee_usd=r[11],
-                wallet_fee_usd=r[12],
+                wallet_buy_fee_usd=r[11],
+                wallet_sell_fee_usd=r[12],
+                wallet_fee_usd=r[13],
             )
             for r in rows
         ]

@@ -17,7 +17,8 @@ class WalletTokenStats:
     wallet_sell_token_volume: int    # tokens sold: sum(amount) for sells
     wallet_buy_usd_volume: float     # USD spent on buys: sum(amount) / 1e6
     wallet_sell_usd_volume: float    # USD received from sells: sum(amount * price / 10000) / 1e6
-    wallet_buy_fee_token_volume: float  # BUY fees in raw shares (1e6 = 1 share)
+    wallet_buy_fee_token_volume: float  # pre-V2 BUY fees in raw shares (1e6 = 1 share)
+    wallet_buy_fee_usd: float        # V2 BUY fees charged directly in USD
     wallet_sell_fee_usd: float       # SELL fees in USDC
     wallet_fee_usd: float            # total fee converted to USD at execution price
 

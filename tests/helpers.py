@@ -13,6 +13,7 @@ def make_wallet_stats(
     wallet_buy_usd_volume: float = 30.0,
     wallet_sell_usd_volume: float = 20.0,
     wallet_buy_fee_token_volume: float = 0.0,
+    wallet_buy_fee_usd: float = 0.0,
     wallet_sell_fee_usd: float = 0.0,
     wallet_fee_usd: float = 1.0,
 ) -> WalletTokenStats:
@@ -28,6 +29,7 @@ def make_wallet_stats(
         wallet_buy_usd_volume=wallet_buy_usd_volume,
         wallet_sell_usd_volume=wallet_sell_usd_volume,
         wallet_buy_fee_token_volume=wallet_buy_fee_token_volume,
+        wallet_buy_fee_usd=wallet_buy_fee_usd,
         wallet_sell_fee_usd=wallet_sell_fee_usd,
         wallet_fee_usd=wallet_fee_usd,
     )

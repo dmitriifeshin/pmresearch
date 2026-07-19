@@ -122,8 +122,9 @@ class TagMetricsBuilder:
         # All token volumes are raw units (1e6 = 1 human token):
         #   buy_token_volume  = sum(amount * 10000 / price)  [side=0, amount=micro-USDC]
         #   sell_token_volume = sum(amount)                   [side=1, amount=raw token units]
-        # BUY fees are charged in shares, so they reduce the position. SELL fees
-        # are charged in USDC and reduce realized proceeds below.
+        # Before the V2 cutover BUY fees were charged in shares, so only those
+        # reduce the position. V2 BUY fees and all SELL fees are USD expenses
+        # and are subtracted from cash PnL below.
         remaining = \
            ws.wallet_buy_token_volume \
             - ws.wallet_buy_fee_token_volume \
@@ -137,6 +138,7 @@ class TagMetricsBuilder:
             # unrealized = 0.0
         return (
             ws.wallet_sell_usd_volume
+            - ws.wallet_buy_fee_usd
             - ws.wallet_sell_fee_usd
             + unrealized
             - ws.wallet_buy_usd_volume

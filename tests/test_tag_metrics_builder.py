@@ -252,6 +252,25 @@ def test_pnl_sell_fee_reduces_realized_proceeds():
     assert arrays.pnl[0] == pytest.approx(1.5)
 
 
+def test_pnl_v2_buy_fee_is_usd_expense_not_share_reduction():
+    ws = make_wallet_stats(
+        token_id=1,
+        wallet_buy_token_volume=20_000_000,
+        wallet_buy_fee_usd=0.5,
+        wallet_sell_token_volume=10_000_000,
+        wallet_buy_usd_volume=10.0,
+        wallet_sell_usd_volume=6.0,
+    )
+    ctx = WalletTokenContext(
+        wallet_stats=ws,
+        market_stats=make_market_stats(1, last_price=7000),
+        metadata=make_metadata(1, tags=("Politics",)),
+    )
+    arrays = TagMetricsBuilder().build([ctx], tags=["Politics"]).get("Politics")
+    # 10 shares remain ($7), and the $0.50 V2 BUY fee is a cash expense.
+    assert arrays.pnl[0] == pytest.approx(6.0 + 7.0 - 10.0 - 0.5)
+
+
 def test_pnl_nan_when_remaining_and_no_market_stats():
     ws = make_wallet_stats(
         token_id=1,
