@@ -5,7 +5,7 @@ from typing import Any, Protocol
 
 from clickhouse_connect.driver.external import ExternalData
 
-from .models import TokenMarketStats, TokenMetadata, WalletTokenStats
+from .models import TokenMarketStats, TokenMetadata, WalletTokenBalance, WalletTokenStats
 
 
 class ClickHouseClient(Protocol):
@@ -110,6 +110,29 @@ class WalletTokenStatsRepository:
             )
             for r in rows
         ]
+
+
+class WalletTokenBalanceRepository:
+    """Reads the temporary Rust-calculated balance snapshot."""
+
+    def __init__(self, client: ClickHouseClient) -> None:
+        self._ch = client
+
+    def get_balances(self, address: str) -> list[WalletTokenBalance]:
+        hex_addr = _strip_0x(address).upper()
+        sql = """
+            SELECT
+                token_id,
+                balance
+            FROM default.wallet_token_balances FINAL
+            WHERE address = unhex(%(address)s)
+            ORDER BY token_id
+        """
+        rows = self._ch.query(
+            sql,
+            parameters={"address": hex_addr},
+        ).result_rows
+        return [WalletTokenBalance(token_id=int(row[0]), balance=int(row[1])) for row in rows]
 
 
 class TokenMarketStatsRepository:

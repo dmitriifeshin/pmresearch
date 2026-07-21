@@ -54,6 +54,12 @@ class WalletTokenContext:
 
 
 @dataclass(frozen=True, slots=True)
+class WalletTokenBalance:
+    token_id: int  # 0 means collateral/USDC
+    balance: int   # raw units: 1e6 = $1 or one share
+
+
+@dataclass(frozen=True, slots=True)
 class FilterDecision:
     keep: bool
     reason: str | None = None
