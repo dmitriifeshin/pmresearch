@@ -65,6 +65,18 @@ def test_uses_inner_join_on_input_tokens():
     assert "input_tokens" in sql
 
 
+def test_rounds_last_price_for_resolved_tokens():
+    client = _CapturingClient()
+    repo = TokenMarketStatsRepository(client)
+    repo.get_stats([1])
+
+    normalized_sql = " ".join(client.calls[0]["sql"].lower().split())
+    assert "left join default.tokens_new as t final" in normalized_sql
+    assert "any(t.resolve)" in normalized_sql
+    assert "argmax(tr.price, tr.block_ts) >= 5000" in normalized_sql
+    assert "10000, 0" in normalized_sql
+
+
 # ── since / until parameters ──────────────────────────────────────────────────
 
 def test_no_since_until_passes_no_parameters():

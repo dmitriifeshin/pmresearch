@@ -172,12 +172,17 @@ class TokenMarketStatsRepository:
                 tr.token_id,
                 min(tr.block_ts)              AS market_first_trade_ts,
                 max(tr.block_ts)              AS market_last_trade_ts,
-                argMax(tr.price, tr.block_ts) AS last_price,
+                if(
+                    any(t.resolve),
+                    if(argMax(tr.price, tr.block_ts) >= 5000, 10000, 0),
+                    argMax(tr.price, tr.block_ts)
+                ) AS last_price,
                 count()                       AS market_trades_count,
                 sum(tr.amount)                AS market_volume,
                 uniqExact(tr.address)         AS unique_traders_count
             FROM default.trades_bq AS tr
             INNER JOIN input_tokens AS it ON tr.token_id = it.token_id
+            LEFT JOIN default.tokens_new AS t FINAL ON tr.token_id = t.token_id
             {where_clause}
             GROUP BY tr.token_id
         """
